@@ -1,7 +1,7 @@
 
-import * as THREE from 'three';
-import { useEffect, useMemo, useState } from 'react';
-import WebGL from './webGL';
+import * as THREE from 'three'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import WebGL from './webGL'
 
 export class Options {
 	constructor(options){
@@ -25,13 +25,13 @@ const checkOptions = (options) => {
 
 const getRenderer = ({ canvas, antialias}) => {
 	switch(canvas){
-		case undefined: 
-			return new THREE.WebGLRenderer();
-		default: 
-			if(canvas.current)return new THREE.WebGLRenderer({ canvas: canvas.current, antialias })
-			else if(canvas.nodeName && canvas.nodeName.toLowerCase() === 'canvas'){
-				return new THREE.WebGLRenderer({ canvas, antialias })
-			} else return new THREE.WebGLRenderer();
+	case undefined: 
+		return new THREE.WebGLRenderer()
+	default: 
+		if(canvas.current)return new THREE.WebGLRenderer({ canvas: canvas.current, antialias })
+		else if(canvas.nodeName && canvas.nodeName.toLowerCase() === 'canvas'){
+			return new THREE.WebGLRenderer({ canvas, antialias })
+		} else return new THREE.WebGLRenderer()
 	}
 }
 
@@ -46,14 +46,14 @@ const handleResize = ({camera, renderer}) => {
 	}
 }
 export default function useThree(options){
-	checkOptions(options);
+	checkOptions(options)
 	const { canvas, antialias, camera: defaultCam, animate } = useMemo(() => 
-			({	
-				canvas: options.canvas, 
-				antialias: options.antialias,
-				camera: options.camera,
-				animate: options.animate
-			}),
+		({	
+			canvas: options.canvas, 
+			antialias: options.antialias,
+			camera: options.camera,
+			animate: options.animate
+		}),
 	[options.canvas, options.antialias, options.camera, options.animate])
 	
 	const [renderer, setRenderer] = useState(null)
@@ -62,37 +62,37 @@ export default function useThree(options){
 
 	const scene = useMemo(() => new THREE.Scene(), [])
 
+	const animation = useCallback(() => {
+		requestAnimationFrame(() => {
+			if(typeof animate === 'function') animate()
+			if(renderer) renderer.render( scene, camera )
+			animation()
+		})
+	}, [animate, renderer, scene, camera])
 
-  useEffect(() => {
+	useEffect(() => {
 		if (WebGL.isWebGLAvailable() ) {
 
 			if(renderer === null) setRenderer(getRenderer({canvas, antialias}))
 			if(!camera) setCamera(new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 ))
 			if(camera){
-				camera.position.set( 0, 0, 100 );
+				camera.position.set( 0, 0, 100 )
 				camera.lookAt( 0, 0, 0 )
 			}
 			if(renderer){
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				document.body.appendChild( renderer.domElement );
+				renderer.setSize( window.innerWidth, window.innerHeight )
+				document.body.appendChild( renderer.domElement )
 			}
-			function animation() {
-				requestAnimationFrame(() => {
-					if(typeof animate === 'function') animate()
-					if(renderer) renderer.render( scene, camera );
-					animation()
-				});
-			};
-			animation();
+			animation()
 			window.addEventListener('resize', () => {
 				handleResize({ camera, renderer })
 			})
 		} else {
-			const warning = WebGL.getWebGLErrorMessage();
-			document.getElementById( 'container' ).appendChild( warning );
+			const warning = WebGL.getWebGLErrorMessage()
+			document.getElementById( 'container' ).appendChild( warning )
 		}
 		return () => {}
-	}, [animate, antialias, camera, canvas, renderer, scene])
+	}, [antialias, camera, canvas, renderer, scene, animation])
 
 	return { renderer, camera, scene }
 }
